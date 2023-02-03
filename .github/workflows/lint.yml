@@ -48,4 +48,4 @@ jobs:
               run: composer install --no-interaction --no-progress --no-suggest
 
             - name: ECS
-              run: vendor/bin/ecs --clear-cache
+              run: vendor/bin/ecs
