@@ -4,9 +4,11 @@ namespace GoReply\DoctrineCiphersweet;
 
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
+use LogicException;
 use ParagonIE\CipherSweet\BlindIndex;
 use ParagonIE\CipherSweet\CipherSweet;
 use ParagonIE\CipherSweet\EncryptedField;
+use ReflectionProperty;
 use RuntimeException;
 use WeakMap;
 use function count;
@@ -163,6 +165,8 @@ class Helper
                 continue;
             }
 
+            $this->assertValidPropertyType($entityClass, $property);
+
             $encryptedFields[$propertyName] = new EncryptedField(
                 engine: $this->ciphersweet,
                 tableName: $tableName,
@@ -186,6 +190,8 @@ class Helper
                 throw new RuntimeException(sprintf('Unknown encrypted field "%s"', $blindIndex->field));
             }
 
+            $this->assertValidPropertyType($entityClass, $property);
+
             $encryptedFields[$blindIndex->field]->addBlindIndex(new BlindIndex(
                 name: $propertyName,
                 transformations: $blindIndex->transformations,
@@ -196,5 +202,22 @@ class Helper
         }
 
         return $encryptedFields;
+    }
+
+    private function assertValidPropertyType(string $entityClass, ReflectionProperty $property): void
+    {
+        $type = $property->getType();
+        if ($type === null) {
+            return;
+        }
+
+        if (!in_array((string)$type, ['string', '?string', 'string|null'], true)) {
+            throw new LogicException(sprintf(
+                'Property %s::%s should accept "string" or "string|null" but accepts "%s"',
+                $entityClass,
+                $property->getName(),
+                (string)$type,
+            ));
+        }
     }
 }
