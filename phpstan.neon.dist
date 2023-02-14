@@ -6,5 +6,7 @@ parameters:
     level: 9
     paths:
         - src
+    stubFiles:
+        - stubs/EncryptedField.stub
 
     checkMissingCallableSignature: true

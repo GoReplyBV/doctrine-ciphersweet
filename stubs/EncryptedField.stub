@@ -1,0 +1,39 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ParagonIE\CipherSweet;
+
+use SensitiveParameter;
+
+class EncryptedField
+{
+    /**
+     * @return array{string, array<string, string>}
+     */
+    public function prepareForStorage(
+        #[SensitiveParameter]
+        string $plaintext,
+        #[SensitiveParameter]
+        string $aad = ''
+    ): array {
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getAllBlindIndexes(
+        #[SensitiveParameter]
+        string $plaintext
+    ): array
+    {
+    }
+
+    public function getBlindIndex(
+        #[SensitiveParameter]
+        string $plaintext,
+        #[SensitiveParameter]
+        string $name
+    ): string {
+    }
+}

@@ -1,16 +1,2 @@
 parameters:
-	ignoreErrors:
-		-
-			message: "#^Method GoReply\\\\DoctrineCiphersweet\\\\BlindIndexSearchValueProvider\\:\\:getSearchValues\\(\\) should return non\\-empty\\-array\\<string, string\\> but returns non\\-empty\\-array\\<string, array\\|string\\>\\.$#"
-			count: 1
-			path: src/BlindIndexSearchValueProvider.php
-
-		-
-			message: "#^Argument of an invalid type array\\|string supplied for foreach, only iterables are supported\\.$#"
-			count: 1
-			path: src/Helper.php
-
-		-
-			message: "#^Binary operation \"\\.\" between array\\|string and \"\\\\001\\<ENC\\>\\\\002\" results in an error\\.$#"
-			count: 1
-			path: src/Helper.php
+	ignoreErrors: []
