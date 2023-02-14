@@ -8,6 +8,7 @@ use ParagonIE\CipherSweet\BlindIndex;
 use ParagonIE\CipherSweet\CipherSweet;
 use ParagonIE\CipherSweet\EncryptedField;
 use RuntimeException;
+use WeakMap;
 use function count;
 use function is_string;
 use function sprintf;
@@ -23,10 +24,14 @@ class Helper
     /** @var array<class-string, array<string, EncryptedField>> */
     private array $encryptedFieldCache = [];
 
+    /** @var WeakMap<object, array<string, PreparedData>> */
+    private WeakMap $preparedDataCache;
+
     public function __construct(
         private CipherSweet $ciphersweet,
         private EntityManagerInterface $entityManager,
     ) {
+        $this->preparedDataCache = new WeakMap();
     }
 
     public function encrypt(object $object): void
@@ -39,12 +44,26 @@ class Helper
                 continue;
             }
 
-            [$ciphertext, $blindIndexes] = $encryptedField->prepareForStorage($plaintext);
+            $preparedData = $this->preparedDataCache[$object][$propertyName] ?? null;
+            if ($preparedData === null || $preparedData->plaintext !== $plaintext) {
+                [$ciphertext, $blindIndexes] = $encryptedField->prepareForStorage($plaintext);
+            } else {
+                $ciphertext = $preparedData->ciphertext;
+                $blindIndexes = $preparedData->blindIndexes;
+            }
+
             $meta->setFieldValue($object, $propertyName, $ciphertext . self::MARKER);
 
             foreach ($blindIndexes as $blindIndexPropertyName => $blindIndexCiphertext) {
                 $meta->setFieldValue($object, $blindIndexPropertyName, $blindIndexCiphertext);
             }
+
+            $this->preparedDataCache[$object] ??= [];
+            $this->preparedDataCache[$object][$propertyName] = new PreparedData(
+                plaintext: $plaintext,
+                ciphertext: $ciphertext,
+                blindIndexes: $blindIndexes,
+            );
         }
     }
 
@@ -63,9 +82,32 @@ class Helper
             $plaintext = $encryptedField->decryptValue($ciphertext);
             $meta->setFieldValue($object, $propertyName, $plaintext);
 
+            $blindIndexes = [];
+            $regenerateBlindIndexes = false;
+
             foreach ($encryptedField->getBlindIndexObjects() as $blindIndex) {
-                $meta->setFieldValue($object, $blindIndex->getName(), null);
+                $blindIndexPropertyName = $blindIndex->getName();
+
+                $blindIndexValue = $meta->getFieldValue($object, $blindIndexPropertyName);
+                if (is_string($blindIndexValue)) {
+                    $blindIndexes[$blindIndexPropertyName] = $blindIndexValue;
+                } else {
+                    $regenerateBlindIndexes = true;
+                }
+
+                $meta->setFieldValue($object, $blindIndexPropertyName, null);
             }
+
+            if ($regenerateBlindIndexes) {
+                $blindIndexes = $encryptedField->getAllBlindIndexes($plaintext);
+            }
+
+            $this->preparedDataCache[$object] ??= [];
+            $this->preparedDataCache[$object][$propertyName] = new PreparedData(
+                plaintext: $plaintext,
+                ciphertext: $ciphertext,
+                blindIndexes: $blindIndexes,
+            );
         }
     }
 
